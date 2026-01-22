@@ -106,6 +106,66 @@ error_readings = edited_df['Error Value'].tolist()
 
 st.markdown("---")
 
+# Electrical Parameters Section
+st.header("⚡ Electrical Parameters")
+st.markdown("Enter the electrical parameters for power calculation:")
+
+col_elec1, col_elec2 = st.columns(2)
+
+with col_elec1:
+    ac_type = st.radio(
+        "AC Type",
+        options=["Single-phase (1φ)", "Three-phase (3φ)"],
+        index=0,
+        horizontal=True,
+        help="Select the AC system type"
+    )
+    
+    voltage = st.number_input(
+        "Voltage (V)",
+        min_value=0.0,
+        value=230.0,
+        format="%.2f",
+        help="Enter the voltage in volts (V)"
+    )
+    
+with col_elec2:
+    current = st.number_input(
+        "Current (A)",
+        min_value=0.0,
+        value=5.0,
+        format="%.3f",
+        help="Enter the current in amperes (A)"
+    )
+    
+    power_factor = st.number_input(
+        "Power Factor",
+        min_value=-1.0,
+        max_value=1.0,
+        value=0.85,
+        format="%.3f",
+        help="Enter the power factor (-1.0 to +1.0, negative for leading)"
+    )
+
+# Calculate Real Power
+if ac_type == "Single-phase (1φ)":
+    real_power_w = voltage * current * power_factor
+    power_formula = "P(W) = V × I × PF"
+else:  # Three-phase
+    real_power_w = 3 * voltage * current * power_factor
+    power_formula = "P(W) = 3 × V_LL × I × PF"
+
+real_power_kw = real_power_w / 1000.0
+
+# Display Real Power
+st.metric(
+    "Real Power (kW)",
+    f"{real_power_kw:.3f}",
+    help=f"Calculated using: {power_formula}"
+)
+
+st.markdown("---")
+
 # Calculations
 st.header("🔬 Uncertainty Analysis Results")
 
@@ -250,6 +310,11 @@ with st.expander("View Calculation Details"):
     st.write(f"- **Temperature Difference:** {temp_difference}°C")
     st.write(f"- **Age Factor:** {age_factor}%/year")
     st.write(f"- **Years in Service:** {years_in_service} years")
+    st.write(f"- **AC Type:** {ac_type}")
+    st.write(f"- **Voltage:** {voltage} V")
+    st.write(f"- **Current:** {current} A")
+    st.write(f"- **Power Factor:** {power_factor}")
+    st.write(f"- **Real Power:** {real_power_kw:.3f} kW (calculated using {power_formula})")
     
     st.markdown("### Formulas Used")
     st.latex(r"U_1 = \sigma_{readings}")
@@ -334,6 +399,26 @@ def create_excel_report():
     
     ws[f'A{row}'] = "Years in Service"
     ws[f'B{row}'] = years_in_service
+    row += 1
+    
+    ws[f'A{row}'] = "AC Type"
+    ws[f'B{row}'] = ac_type
+    row += 1
+    
+    ws[f'A{row}'] = "Voltage (V)"
+    ws[f'B{row}'] = voltage
+    row += 1
+    
+    ws[f'A{row}'] = "Current (A)"
+    ws[f'B{row}'] = current
+    row += 1
+    
+    ws[f'A{row}'] = "Power Factor"
+    ws[f'B{row}'] = power_factor
+    row += 1
+    
+    ws[f'A{row}'] = "Real Power (kW)"
+    ws[f'B{row}'] = real_power_kw
     row += 2
     
     # Error Readings Section
@@ -467,6 +552,11 @@ def create_pdf_report():
     pdf.cell(0, 6, f"Temperature Difference: {temp_difference:.2f} deg C", ln=True)
     pdf.cell(0, 6, f"Age Factor: {age_factor:.5f}%/year", ln=True)
     pdf.cell(0, 6, f"Years in Service: {years_in_service:.1f} years", ln=True)
+    pdf.cell(0, 6, f"AC Type: {clean_text(ac_type)}", ln=True)
+    pdf.cell(0, 6, f"Voltage: {voltage:.2f} V", ln=True)
+    pdf.cell(0, 6, f"Current: {current:.3f} A", ln=True)
+    pdf.cell(0, 6, f"Power Factor: {power_factor:.3f}", ln=True)
+    pdf.cell(0, 6, f"Real Power: {real_power_kw:.3f} kW (Formula: {clean_text(power_formula)})", ln=True)
     pdf.ln(3)
     
     # Error Readings
