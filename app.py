@@ -126,7 +126,7 @@ with col_elec1:
         min_value=0.0,
         value=230.0,
         format="%.2f",
-        help="Enter the voltage in volts (V)"
+        help="Enter the voltage in volts (V). For three-phase, use line-to-line voltage (V_LL)"
     )
     
 with col_elec2:
