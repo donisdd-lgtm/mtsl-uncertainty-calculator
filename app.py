@@ -530,6 +530,8 @@ def create_pdf_report():
         text = text.replace("₄", "4")
         text = text.replace("₅", "5")
         text = text.replace("₆", "6")
+        text = text.replace("φ", "phi")
+        text = text.replace("×", "x")
         return text
     
     # Header
