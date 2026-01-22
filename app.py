@@ -152,8 +152,8 @@ if ac_type == "Single-phase (1φ)":
     real_power_w = voltage * current * power_factor
     power_formula = "P(W) = V × I × PF"
 else:  # Three-phase
-    real_power_w = 3 * voltage * current * power_factor
-    power_formula = "P(W) = 3 × V_LL × I × PF"
+    real_power_w = math.sqrt(3) * voltage * current * power_factor
+    power_formula = "P(W) = √3 × V_LL × I × PF"
 
 real_power_kw = real_power_w / 1000.0
 
@@ -221,7 +221,7 @@ uncertainty_budget = pd.DataFrame({
         "Reference Standard Accuracy (uncertainty caused due to the accuracy factor of reference standard used for calibration)",
         "Certificate Uncertainty (uncertainty caused due to the uncertainty reported by the lab where reference standard was calibrated)",
         "Resolution",
-        "Temperature Drift (uncertainty caused due to the fact that temperature maintained during the calibration by the lab where reference standard was calibrated is different from the reference temperature maintained at MTSL Palakkad)",
+        "Temperature Drift (uncertainty caused due to the fact that temperature maintained during the calibration by the lab where reference standard was calibrated is different from the reference temperature)",
         "Energy Drift (uncertainty included to account for age of the reference standard)"
     ],
     "Type": ["A", "B", "B", "B", "B", "B"],
@@ -317,13 +317,13 @@ with st.expander("View Calculation Details"):
     st.write(f"- **Real Power:** {real_power_kw:.3f} kW (calculated using {power_formula})")
     
     st.markdown("### Formulas Used")
-    st.latex(r"U_1 = \sigma_{readings}")
-    st.latex(r"U_2 = \frac{Reference\;Accuracy}{\sqrt{3}}")
-    st.latex(r"U_3 = \frac{Certificate\;Uncertainty}{2}")
-    st.latex(r"U_4 = \frac{DUC\;Resolution}{2\sqrt{3}}")
-    st.latex(r"U_5 = \frac{0.000025 \times Temp\;Difference}{\sqrt{3}}")
-    st.latex(r"U_6 = \frac{Energy\;Drift}{\sqrt{3}}")
-    st.latex(r"u_c = \sqrt{U_1^2 + U_2^2 + U_3^2 + U_4^2 + U_5^2 + U_6^2}")
+    st.latex(r"U_1 = \\sigma_{readings}")
+    st.latex(r"U_2 = \\frac{Reference\;Accuracy}{\\sqrt{3}}")
+    st.latex(r"U_3 = \\frac{Certificate\;Uncertainty}{2}")
+    st.latex(r"U_4 = \\frac{DUC\;Resolution}{2\\sqrt{3}}")
+    st.latex(r"U_5 = \\frac{0.000025 \times Temp\;Difference}{\\sqrt{3}}")
+    st.latex(r"U_6 = \\frac{Energy\;Drift}{\\sqrt{3}}")
+    st.latex(r"u_c = \\sqrt{U_1^2 + U_2^2 + U_3^2 + U_4^2 + U_5^2 + U_6^2}")
     st.latex(r"U = u_c \times k \quad (k=2)")
     
     st.markdown("### Component Contributions")
@@ -480,7 +480,7 @@ def create_excel_report():
     ws[f'B{row}'] = uc
     row += 1
     
-    ws[f'A{row}'] = f"Expanded Uncertainty - U (k={COVERAGE_FACTOR}) (%)"
+    ws[f'A{row}'] = "Expanded Uncertainty - U (k={COVERAGE_FACTOR}) (%)"
     ws[f'B{row}'] = final_expanded_uncertainty
     row += 1
     
@@ -645,17 +645,17 @@ def create_pdf_report():
     pdf.cell(0, 5, f"U4 (Resolution) = DUC Res / (2 * sqrt(3)) = {duc_resolution:.6f} / 3.464 = {U4:.6f}", ln=True)
     temp_val = TEMPERATURE_COEFFICIENT * temp_difference
     pdf.cell(0, 5, f"U5 (Temp Drift) = (0.000025 * {temp_difference:.2f}) / sqrt(3) = {temp_val:.8f} / 1.732 = {U5:.8f}", ln=True)
-    pdf.cell(0, 5, f"U6 (Energy Drift) = (Age Factor * Years) / sqrt(3) = ({age_factor:.5f} * {years_in_service:.1f}) / 1.732 = {U6:.8f}", ln=True)
+    pdf.cell(0, 5, f"U6 (Energy Drift) = (Age Factor * Years) / sqrt(3) = ({age_factor:.5f} * {years_in_service:.0f}) / 1.732 = {U6:.8f}", ln=True)
     pdf.ln(3)
     
-    pdf.cell(0, 5, f"Combined Uncertainty (uc) = sqrt(U1^2 + U2^2 + ... + U6^2) = {uc:.6f}%", ln=True)
-    pdf.cell(0, 5, f"Expanded Uncertainty (U) = k * uc = {COVERAGE_FACTOR} * {uc:.6f} = {expanded_uncertainty:.6f}%", ln=True)
+    pdf.cell(0, 5, f"Combined Uncertainty (uc) = sqrt(U1^2 + U2^2 + ... + U6^2) = {uc:.6f}%, ln=True)
+    pdf.cell(0, 5, f"Expanded Uncertainty (U) = k * uc = {COVERAGE_FACTOR} * {uc:.6f} = {expanded_uncertainty:.6f}%, ln=True)
     
     if bmc_applied:
         pdf.ln(2)
         pdf.set_font("Arial", "B", 9)
         pdf.set_text_color(255, 102, 0)
-        pdf.cell(0, 5, f"BMC Floor Applied: Calculated U ({expanded_uncertainty:.4f}%) set to {BMC_FLOOR:.3f}%", ln=True)
+        pdf.cell(0, 5, f"BMC Floor Applied: Calculated U ({expanded_uncertainty:.4f}%) set to {BMC_FLOOR:.3f}%.", ln=True)
         pdf.set_text_color(0, 0, 0)
     
     pdf.ln(5)
@@ -724,73 +724,72 @@ with st.expander("🔍 Show Detailed Step-by-Step Calculation"):
     st.markdown("#### **Average Error**")
     sum_of_errors = sum(error_readings)
     st.latex(r"\text{Average Error} = \frac{\sum_{i=1}^{10} \text{Error}_i}{10}")
-    st.latex(f"= \\frac{{{sum_of_errors:.6f}}}{{10}} = {average_error:.6f} \\%")
+    st.latex(f"= \\frac{{{sum_of_errors:.6f}}}{{10}} = {average_error:.6f} \%")
     st.markdown("")
     
     # U1 - Repeatability
     st.markdown("#### **U₁ - Repeatability (Standard Deviation)**")
-    st.latex(r"U_1 = \sigma = \sqrt{\frac{\sum_{i=1}^{n}(x_i - \bar{x})^2}{n-1}}")
-    st.markdown(f"Where readings are: `{[f'{r:.4f}' for r in error_readings]}`")
+    st.latex(r"U_1 = \\sigma = \\sqrt{\\frac{\sum_{i=1}^{n}(x_i - \bar{x})^2}{n-1}}")
+    st.markdown(f"Where readings are: '{{[f'{{r:.4f}}' for r in error_readings]}}'")
     st.latex(f"U_1 = {U1:.6f}")
     st.markdown("")
     
     # U2 - Reference Standard
     st.markdown("#### **U₂ - Reference Standard Accuracy (uncertainty caused due to the accuracy factor of reference standard used for calibration)**")
-    st.latex(r"U_{2} = \frac{\text{Reference Accuracy}}{\sqrt{3}}")
-    st.latex(f"= \\frac{{{ref_standard_accuracy:.6f}}}{{\\sqrt{{3}}}} = \\frac{{{ref_standard_accuracy:.6f}}}{{1.732051}} = {U2:.6f} \\%")
+    st.latex(r"U_{2} = \\frac{Reference Accuracy}{\\sqrt{3}}")
+    st.latex(f"= \\frac{{{ref_standard_accuracy:.6f}}}{{\\sqrt{{3}}}} = \\frac{{{ref_standard_accuracy:.6f}}}{{1.732051}} = {U2:.6f} \%")
     st.markdown("")
     
     # U3 - Certificate
     st.markdown("#### **U₃ - Certificate Uncertainty (uncertainty caused due to the uncertainty reported by the lab where reference standard was calibrated)**")
-    st.latex(r"U_{3} = \frac{\text{Certificate Uncertainty}}{2}")
-    st.latex(f"= \\frac{{{certificate_uncertainty:.6f}}}{{2}} = {U3:.6f} \\%")
+    st.latex(r"U_{3} = \\frac{Certificate Uncertainty}{2}")
+    st.latex(f"= \\frac{{{certificate_uncertainty:.6f}}}{{2}} = {U3:.6f} \%")
     st.markdown("")
     
     # U4 - Resolution
     st.markdown("#### **U₄ - DUC Resolution**")
-    st.latex(r"U_{4} = \frac{\text{DUC Resolution}}{2\sqrt{3}}")
+    st.latex(r"U_{4} = \\frac{DUC Resolution}{2\\sqrt{3}}")
     st.latex(f"= \\frac{{{duc_resolution:.6f}}}{{2 \\times 1.732051}} = \\frac{{{duc_resolution:.6f}}}{{3.464102}} = {U4:.6f}")
     st.markdown("")
     
     # U5 - Temperature Drift
-    st.markdown("#### **U₅ - Temperature Drift (uncertainty caused due to the fact that temperature maintained during the calibration by the lab where reference standard was calibrated is different from the reference temperature maintained at MTSL Palakkad)**")
-    st.latex(r"U_{5} = \frac{\text{Temp Coeff} \times \Delta T}{\sqrt{3}}")
+    st.markdown("#### **U₅ - Temperature Drift (uncertainty caused due to the fact that temperature maintained during the calibration by the lab where reference standard was calibrated is different from the reference temperature)**")
+    st.latex(r"U_{5} = \\frac{Temp Coeff \times \Delta T}{\\sqrt{3}}")
     temp_value = TEMPERATURE_COEFFICIENT * temp_difference
-    st.latex(f"= \\frac{{0.000025 \\times {temp_difference:.2f}}}{{\\sqrt{{3}}}} = \\frac{{{temp_value:.8f}}}{{1.732051}} = {U5:.8f}")
+    st.latex(f"= \\frac{{0.000025 \times {temp_difference:.2f}}}{{\\sqrt{{3}}}} = \\frac{{{temp_value:.8f}}}{{1.732051}} = {U5:.8f}")
     st.markdown("")
     
     # U6 - Energy Drift (Age-Based)
     st.markdown("#### **U₆ - Energy Drift (uncertainty included to account for age of the reference standard)**")
-    st.latex(r"U_{drift} = \frac{\text{Age Factor} \times \text{Years}}{\sqrt{3}}")
-    st.latex(f"= \\frac{{{age_factor:.5f} \\times {years_in_service:.0f}}}{{1.732051}} = {U6:.8f} \\%")
+    st.latex(r"U_{drift} = \\frac{Age Factor \times Years}{\\sqrt{3}}")
+    st.latex(f"= \\frac{{{age_factor:.5f} \times {years_in_service:.0f}}}{{1.732051}} = {U6:.8f} \%")
     st.markdown("")
     
     st.markdown("---")
     
     # Combined Uncertainty
     st.markdown("#### **Combined Uncertainty (uᴄ)**")
-    st.latex(r"u_c = \sqrt{U_1^2 + U_2^2 + U_3^2 + U_4^2 + U_5^2 + U_6^2}")
+    st.latex(r"u_c = \\sqrt{U_1^2 + U_2^2 + U_3^2 + U_4^2 + U_5^2 + U_6^2}")
     st.latex(f"= \\sqrt{{{U1:.6f}^2 + {U2:.6f}^2 + {U3:.6f}^2 + {U4:.6f}^2 + {U5:.8f}^2 + {U6:.8f}^2}}")
     sum_of_squares = U1**2 + U2**2 + U3**2 + U4**2 + U5**2 + U6**2
-    st.latex(f"= \\sqrt{{{sum_of_squares:.12f}}} = {uc:.6f} \\%")
+    st.latex(f"= \\sqrt{{{sum_of_squares:.12f}}} = {uc:.6f} \%")
     st.markdown("")
     
     # Expanded Uncertainty
     st.markdown("#### **Expanded Uncertainty (U)**")
     st.latex(r"U = k \times u_c")
-    st.latex(f"= {COVERAGE_FACTOR} \\times {uc:.6f} = {expanded_uncertainty:.6f} \\%")
-    st.markdown("")
+    st.latex(f"= {COVERAGE_FACTOR} \times {uc:.6f} = {expanded_uncertainty:.6f} \%")
     
     # BMC Floor Check
     if bmc_applied:
         st.markdown("#### **⚠️ Best Measurement Capability (BMC) Floor Applied**")
         st.warning(f"**Note:** Calculated U ({expanded_uncertainty:.4f}%) is below the BMC limit. Final Result set to {BMC_FLOOR:.3f}%.")
-        st.latex(f"U_{{final}} = \\max(U_{{calculated}}, \\text{{BMC Floor}}) = \\max({expanded_uncertainty:.6f}, {BMC_FLOOR}) = {final_expanded_uncertainty:.4f} \\%")
+        st.latex(f"U_{{final}} = \max(U_{{calculated}}, \text{{BMC Floor}}) = \max({expanded_uncertainty:.6f}, {BMC_FLOOR}) = {final_expanded_uncertainty:.4f} \%")
         st.markdown("")
     
     st.markdown("---")
     st.markdown("### **Final Result**")
-    st.latex(f"\\text{{Result}} = {average_error:.4f}\\% \\pm {final_expanded_uncertainty:.4f}\\% \\quad (k={COVERAGE_FACTOR})")
+    st.latex(f"\text{{Result}} = {average_error:.4f}\% \pm {final_expanded_uncertainty:.4f}\% \quad (k={COVERAGE_FACTOR})")
 
 
 # Footer
