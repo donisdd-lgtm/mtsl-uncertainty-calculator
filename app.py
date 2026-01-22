@@ -648,8 +648,8 @@ def create_pdf_report():
     pdf.cell(0, 5, f"U6 (Energy Drift) = (Age Factor * Years) / sqrt(3) = ({age_factor:.5f} * {years_in_service:.0f}) / 1.732 = {U6:.8f}", ln=True)
     pdf.ln(3)
     
-    pdf.cell(0, 5, f"Combined Uncertainty (uc) = sqrt(U1^2 + U2^2 + ... + U6^2) = {uc:.6f}%, ln=True)
-    pdf.cell(0, 5, f"Expanded Uncertainty (U) = k * uc = {COVERAGE_FACTOR} * {uc:.6f} = {expanded_uncertainty:.6f}%, ln=True)
+    pdf.cell(0, 5, f"Combined Uncertainty (uc) = sqrt(U1^2 + U2^2 + ... + U6^2) = {uc:.6f}%", ln=True)
+    pdf.cell(0, 5, f"Expanded Uncertainty (U) = k * uc = {COVERAGE_FACTOR} * {uc:.6f} = {expanded_uncertainty:.6f}%", ln=True)
     
     if bmc_applied:
         pdf.ln(2)
