@@ -166,10 +166,8 @@ else:  # Three-phase
 real_power_kw = real_power_w / 1000.0
 
 # Calculate sin(φ) from power factor
-if abs(power_factor) <= 1:
-    sin_phi = math.sqrt(1 - power_factor**2)
-else:
-    sin_phi = 0
+# sin(φ) is always positive, but we use the sign of PF to determine reactive power direction
+sin_phi = math.copysign(math.sqrt(1 - power_factor**2), power_factor)
 
 # Calculate Reactive Power
 if ac_type == "Single-phase (1φ)":
