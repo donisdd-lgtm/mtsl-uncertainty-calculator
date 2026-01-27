@@ -147,6 +147,14 @@ with col_elec2:
         help="Enter the power factor (-1.0 to +1.0, negative for leading)"
     )
 
+time_hours = st.number_input(
+    "Time Duration (hours)",
+    min_value=0.0,
+    value=1.0,
+    format="%.2f",
+    help="Enter the time duration in hours for energy calculation"
+)
+
 # Calculate Real Power
 if ac_type == "Single-phase (1φ)":
     real_power_w = voltage * current * power_factor
@@ -157,12 +165,54 @@ else:  # Three-phase
 
 real_power_kw = real_power_w / 1000.0
 
-# Display Real Power
-st.metric(
-    "Real Power (kW)",
-    f"{real_power_kw:.3f}",
-    help=f"Calculated using: {power_formula}"
-)
+# Calculate sin(φ) from power factor
+# sin(φ) is always positive, but we use the sign of PF to determine reactive power direction
+sin_phi = math.copysign(math.sqrt(1 - power_factor**2), power_factor)
+
+# Calculate Reactive Power
+if ac_type == "Single-phase (1φ)":
+    reactive_power_var = voltage * current * sin_phi
+    reactive_formula = "Q(VAr) = V × I × sin(φ)"
+else:  # Three-phase
+    reactive_power_var = math.sqrt(3) * voltage * current * sin_phi
+    reactive_formula = "Q(VAr) = √3 × V_LL × I × sin(φ)"
+
+reactive_power_kvar = reactive_power_var / 1000.0
+
+# Calculate Energy
+real_energy_kwh = real_power_kw * time_hours
+reactive_energy_kvarh = reactive_power_kvar * time_hours
+
+# Display Power & Energy Calculations
+st.subheader("⚡ Power & Energy Calculations")
+
+col_power1, col_power2 = st.columns(2)
+
+with col_power1:
+    st.metric(
+        "Real Power (kW)",
+        f"{real_power_kw:.3f}",
+        help=f"Calculated using: {power_formula}"
+    )
+    
+    st.metric(
+        "Reactive Power (kVAr)",
+        f"{reactive_power_kvar:.3f}",
+        help=f"Calculated using: {reactive_formula}"
+    )
+
+with col_power2:
+    st.metric(
+        "Real Energy (kWh)",
+        f"{real_energy_kwh:.3f}",
+        help=f"Energy = Power × Time = {real_power_kw:.3f} kW × {time_hours:.2f} h"
+    )
+    
+    st.metric(
+        "Reactive Energy (kVArh)",
+        f"{reactive_energy_kvarh:.3f}",
+        help=f"Reactive Energy = Reactive Power × Time = {reactive_power_kvar:.3f} kVAr × {time_hours:.2f} h"
+    )
 
 st.markdown("---")
 
@@ -314,7 +364,11 @@ with st.expander("View Calculation Details"):
     st.write(f"- **Voltage:** {voltage} V")
     st.write(f"- **Current:** {current} A")
     st.write(f"- **Power Factor:** {power_factor}")
+    st.write(f"- **Time Duration:** {time_hours} hours")
     st.write(f"- **Real Power:** {real_power_kw:.3f} kW (calculated using {power_formula})")
+    st.write(f"- **Reactive Power:** {reactive_power_kvar:.3f} kVAr (calculated using {reactive_formula})")
+    st.write(f"- **Real Energy:** {real_energy_kwh:.3f} kWh")
+    st.write(f"- **Reactive Energy:** {reactive_energy_kvarh:.3f} kVArh")
     
     st.markdown("### Formulas Used")
     st.latex(r"U_1 = \\sigma_{readings}")
@@ -417,8 +471,24 @@ def create_excel_report():
     ws[f'B{row}'] = power_factor
     row += 1
     
+    ws[f'A{row}'] = "Time Duration (hours)"
+    ws[f'B{row}'] = time_hours
+    row += 1
+    
     ws[f'A{row}'] = "Real Power (kW)"
     ws[f'B{row}'] = real_power_kw
+    row += 1
+    
+    ws[f'A{row}'] = "Reactive Power (kVAr)"
+    ws[f'B{row}'] = reactive_power_kvar
+    row += 1
+    
+    ws[f'A{row}'] = "Real Energy (kWh)"
+    ws[f'B{row}'] = real_energy_kwh
+    row += 1
+    
+    ws[f'A{row}'] = "Reactive Energy (kVArh)"
+    ws[f'B{row}'] = reactive_energy_kvarh
     row += 2
     
     # Error Readings Section
@@ -558,7 +628,11 @@ def create_pdf_report():
     pdf.cell(0, 6, f"Voltage: {voltage:.2f} V", ln=True)
     pdf.cell(0, 6, f"Current: {current:.3f} A", ln=True)
     pdf.cell(0, 6, f"Power Factor: {power_factor:.3f}", ln=True)
+    pdf.cell(0, 6, f"Time Duration: {time_hours:.2f} hours", ln=True)
     pdf.cell(0, 6, f"Real Power: {real_power_kw:.3f} kW (Formula: {clean_text(power_formula)})", ln=True)
+    pdf.cell(0, 6, f"Reactive Power: {reactive_power_kvar:.3f} kVAr (Formula: {clean_text(reactive_formula)})", ln=True)
+    pdf.cell(0, 6, f"Real Energy: {real_energy_kwh:.3f} kWh", ln=True)
+    pdf.cell(0, 6, f"Reactive Energy: {reactive_energy_kvarh:.3f} kVArh", ln=True)
     pdf.ln(3)
     
     # Error Readings
