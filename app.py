@@ -804,7 +804,8 @@ with st.expander("🔍 Show Detailed Step-by-Step Calculation"):
     # U1 - Repeatability
     st.markdown("#### **U₁ - Repeatability (Standard Deviation)**")
     st.latex(r"U_1 = \\sigma = \\sqrt{\\frac{\sum_{i=1}^{n}(x_i - \bar{x})^2}{n-1}}")
-    st.markdown(f"Where readings are: '{{[f'{{r:.4f}}' for r in error_readings]}}'")
+    readings_str = ", ".join([f"{r:.4f}" for r in error_readings])
+    st.markdown(f"Where readings are: [{readings_str}]")
     st.latex(f"U_1 = {U1:.6f}")
     st.markdown("")
     
