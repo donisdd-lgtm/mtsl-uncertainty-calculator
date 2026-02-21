@@ -264,7 +264,7 @@ uncertainty_budget = pd.DataFrame({
         "U3",
         "U4",
         "U5",
-        "U6 - Energy Drift (uncertainty included to account for age of the reference standard)"
+        "U6"
     ],
     "Description": [
         "Repeatability",
