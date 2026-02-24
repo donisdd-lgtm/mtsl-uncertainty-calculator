@@ -222,8 +222,8 @@ st.header("🔬 Uncertainty Analysis Results")
 # Calculate uncertainty components
 error_array = np.array(error_readings)
 
-# U1 - Repeatability (Standard Deviation)
-U1 = np.std(error_array, ddof=1)  # Using sample standard deviation
+# U1 - Repeatability (Standard Deviation / sqrt(n))
+U1 = np.std(error_array, ddof=1) / math.sqrt(len(error_array))
 
 # U2 - Reference Standard
 U2 = ref_standard_accuracy / math.sqrt(3)
@@ -318,7 +318,7 @@ col_results1, col_results2 = st.columns(2)
 with col_results1:
     st.subheader("📈 Uncertainty Components")
     
-    st.metric("U1 - Repeatability", f"{U1:.6f}")
+    st.metric("U1 - Repeatability (Std Dev/√n)", f"{U1:.6f}")
     st.metric("U2 - Reference Standard", f"{U2:.6f}")
     st.metric("U3 - Certificate", f"{U3:.6f}")
     st.metric("U4 - Resolution", f"{U4:.6f}")
@@ -713,7 +713,7 @@ def create_pdf_report():
     pdf.cell(0, 8, "CALCULATION FORMULAS", ln=True)
     pdf.set_font("Arial", "", 9)
     
-    pdf.cell(0, 5, f"U1 (Repeatability) = Standard Deviation of readings = {U1:.6f}", ln=True)
+    pdf.cell(0, 5, f"U1 (Repeatability) = Standard Deviation / sqrt(n) = {U1:.6f}", ln=True)
     pdf.cell(0, 5, f"U2 (Ref Standard) = Ref Accuracy / sqrt(3) = {ref_standard_accuracy:.6f} / 1.732 = {U2:.6f}", ln=True)
     pdf.cell(0, 5, f"U3 (Certificate) = Cert Uncertainty / 2 = {certificate_uncertainty:.6f} / 2 = {U3:.6f}", ln=True)
     pdf.cell(0, 5, f"U4 (Resolution) = DUC Res / (2 * sqrt(3)) = {duc_resolution:.6f} / 3.464 = {U4:.6f}", ln=True)
@@ -802,10 +802,10 @@ with st.expander("🔍 Show Detailed Step-by-Step Calculation"):
     st.markdown("")
     
     # U1 - Repeatability
-    st.markdown("#### **U₁ - Repeatability (Standard Deviation)**")
-    st.latex(r"U_1 = \\sigma = \\sqrt{\\frac{\sum_{i=1}^{n}(x_i - \bar{x})^2}{n-1}}")
+    st.markdown("#### **U₁ - Repeatability (Standard Deviation / √n)**")
+    st.latex(r"U_1 = \frac{\sigma}{\sqrt{n}} = \frac{1}{\sqrt{n}}\sqrt{\frac{\sum_{i=1}^{n}(x_i - \bar{x})^2}{n-1}}")
     readings_str = ", ".join([f"{r:.4f}" for r in error_readings])
-    st.markdown(f"Where readings are: [{readings_str}]")
+    st.markdown(f"Where readings are: [{readings_str}], n = {len(error_readings)}")
     st.latex(f"U_1 = {U1:.6f}")
     st.markdown("")
     
