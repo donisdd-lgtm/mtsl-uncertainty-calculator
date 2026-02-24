@@ -708,31 +708,118 @@ def create_pdf_report():
     
     pdf.ln(2)
     
-    # Section 3 - Calculation Formulas
+    # Section 3 - Detailed Step-by-Step Calculations
     pdf.set_font("Arial", "B", 12)
-    pdf.cell(0, 8, "CALCULATION FORMULAS", ln=True)
-    pdf.set_font("Arial", "", 9)
-    
-    pdf.cell(0, 5, f"U1 (Repeatability) = Standard Deviation / sqrt(n) = {U1:.6f}", ln=True)
-    pdf.cell(0, 5, f"U2 (Ref Standard) = Ref Accuracy / sqrt(3) = {ref_standard_accuracy:.6f} / 1.732 = {U2:.6f}", ln=True)
-    pdf.cell(0, 5, f"U3 (Certificate) = Cert Uncertainty / 2 = {certificate_uncertainty:.6f} / 2 = {U3:.6f}", ln=True)
-    pdf.cell(0, 5, f"U4 (Resolution) = DUC Res / (2 * sqrt(3)) = {duc_resolution:.6f} / 3.464 = {U4:.6f}", ln=True)
-    temp_val = TEMPERATURE_COEFFICIENT * temp_difference
-    pdf.cell(0, 5, f"U5 (Temp Drift) = (0.000025 * {temp_difference:.2f}) / sqrt(3) = {temp_val:.8f} / 1.732 = {U5:.8f}", ln=True)
-    pdf.cell(0, 5, f"U6 (Energy Drift) = (Age Factor * Years) / sqrt(3) = ({age_factor:.5f} * {years_in_service:.0f}) / 1.732 = {U6:.8f}", ln=True)
-    pdf.ln(3)
-    
-    pdf.cell(0, 5, f"Combined Uncertainty (uc) = sqrt(U1^2 + U2^2 + ... + U6^2) = {uc:.6f}%", ln=True)
-    pdf.cell(0, 5, f"Expanded Uncertainty (U) = k * uc = {COVERAGE_FACTOR} * {uc:.6f} = {expanded_uncertainty:.6f}%", ln=True)
-    
-    if bmc_applied:
+    pdf.cell(0, 8, "DETAILED STEP-BY-STEP CALCULATIONS", ln=True)
+    pdf.ln(2)
+
+    # Helper to render a step block: label, formula line, substitution line, result line
+    def step_block(label, formula, substitution, result_line):
+        pdf.set_font("Arial", "B", 10)
+        pdf.cell(0, 6, label, ln=True)
+        pdf.set_font("Arial", "", 9)
+        pdf.cell(0, 5, f"  Formula     : {formula}", ln=True)
+        pdf.cell(0, 5, f"  Substitution: {substitution}", ln=True)
+        pdf.cell(0, 5, f"  Result       : {result_line}", ln=True)
         pdf.ln(2)
+
+    # --- Average Error ---
+    sum_of_errors = sum(error_readings)
+    readings_list = ", ".join([f"{r:.4f}" for r in error_readings])
+    step_block(
+        "Average Error",
+        "Average = sum(Readings) / n",
+        f"= ({readings_list}) / {len(error_readings)}",
+        f"= {sum_of_errors:.6f} / {len(error_readings)} = {average_error:.6f} %"
+    )
+
+    # --- U1 - Repeatability ---
+    std_dev = np.std(error_array, ddof=1)
+    step_block(
+        "U1 - Repeatability  [Type A, Normal distribution]",
+        "U1 = Standard Deviation / sqrt(n)",
+        f"= {std_dev:.6f} / sqrt({len(error_array)})",
+        f"= {std_dev:.6f} / {math.sqrt(len(error_array)):.6f} = {U1:.6f}"
+    )
+
+    # --- U2 - Reference Standard ---
+    step_block(
+        "U2 - Reference Standard Accuracy  [Type B, Rectangular distribution]",
+        "U2 = Reference Accuracy / sqrt(3)",
+        f"= {ref_standard_accuracy:.6f} / sqrt(3)",
+        f"= {ref_standard_accuracy:.6f} / 1.732051 = {U2:.6f} %"
+    )
+
+    # --- U3 - Certificate Uncertainty ---
+    step_block(
+        "U3 - Certificate Uncertainty  [Type B, Normal distribution, k=2]",
+        "U3 = Certificate Uncertainty / 2",
+        f"= {certificate_uncertainty:.6f} / 2",
+        f"= {U3:.6f} %"
+    )
+
+    # --- U4 - Resolution ---
+    step_block(
+        "U4 - DUC Resolution  [Type B, Rectangular distribution]",
+        "U4 = DUC Resolution / (2 * sqrt(3))",
+        f"= {duc_resolution:.6f} / (2 x 1.732051)",
+        f"= {duc_resolution:.6f} / 3.464102 = {U4:.6f}"
+    )
+
+    # --- U5 - Temperature Drift ---
+    temp_val = TEMPERATURE_COEFFICIENT * temp_difference
+    step_block(
+        "U5 - Temperature Drift  [Type B, Rectangular distribution]",
+        "U5 = (Temp Coeff x Delta_T) / sqrt(3)",
+        f"= (0.000025 x {temp_difference:.2f}) / sqrt(3)  =>  {temp_val:.8f} / 1.732051",
+        f"= {U5:.8f}"
+    )
+
+    # --- U6 - Energy Drift (Age) ---
+    total_drift_val = age_factor * years_in_service
+    step_block(
+        "U6 - Energy Drift (Age of Reference Standard)  [Type B, Rectangular distribution]",
+        "U6 = (Age Factor x Years in Service) / sqrt(3)",
+        f"= ({age_factor:.7f} x {years_in_service:.1f}) / sqrt(3)  =>  {total_drift_val:.8f} / 1.732051",
+        f"= {U6:.8f} %"
+    )
+
+    # --- Combined Uncertainty ---
+    pdf.set_font("Arial", "B", 10)
+    pdf.cell(0, 6, "Combined Uncertainty (uc)  [Root Sum of Squares]", ln=True)
+    pdf.set_font("Arial", "", 9)
+    pdf.cell(0, 5, "  Formula     : uc = sqrt(U1^2 + U2^2 + U3^2 + U4^2 + U5^2 + U6^2)", ln=True)
+    pdf.cell(0, 5, f"  U1^2 = {U1**2:.10f}", ln=True)
+    pdf.cell(0, 5, f"  U2^2 = {U2**2:.10f}", ln=True)
+    pdf.cell(0, 5, f"  U3^2 = {U3**2:.10f}", ln=True)
+    pdf.cell(0, 5, f"  U4^2 = {U4**2:.10f}", ln=True)
+    pdf.cell(0, 5, f"  U5^2 = {U5**2:.10f}", ln=True)
+    pdf.cell(0, 5, f"  U6^2 = {U6**2:.10f}", ln=True)
+    sum_sq = U1**2 + U2**2 + U3**2 + U4**2 + U5**2 + U6**2
+    pdf.cell(0, 5, f"  Sum of squares = {sum_sq:.12f}", ln=True)
+    pdf.cell(0, 5, f"  Result       : uc = sqrt({sum_sq:.12f}) = {uc:.6f} %", ln=True)
+    pdf.ln(2)
+
+    # --- Expanded Uncertainty ---
+    pdf.set_font("Arial", "B", 10)
+    pdf.cell(0, 6, "Expanded Uncertainty (U)  [Coverage Factor k=2, ~95% confidence]", ln=True)
+    pdf.set_font("Arial", "", 9)
+    pdf.cell(0, 5, "  Formula     : U = k x uc", ln=True)
+    pdf.cell(0, 5, f"  Substitution: U = {COVERAGE_FACTOR} x {uc:.6f}", ln=True)
+    pdf.cell(0, 5, f"  Result       : U = {expanded_uncertainty:.6f} %", ln=True)
+    pdf.ln(2)
+
+    if bmc_applied:
         pdf.set_font("Arial", "B", 9)
         pdf.set_text_color(255, 102, 0)
-        pdf.cell(0, 5, f"BMC Floor Applied: Calculated U ({expanded_uncertainty:.4f}%) set to {BMC_FLOOR:.3f}%.", ln=True)
+        pdf.cell(0, 5, "BMC Floor Applied:", ln=True)
+        pdf.set_font("Arial", "", 9)
+        pdf.cell(0, 5, f"  Calculated U ({expanded_uncertainty:.6f}%) is below the BMC floor ({BMC_FLOOR:.6f}%).", ln=True)
+        pdf.cell(0, 5, f"  U_final = max({expanded_uncertainty:.6f}, {BMC_FLOOR}) = {final_expanded_uncertainty:.4f} %", ln=True)
         pdf.set_text_color(0, 0, 0)
-    
-    pdf.ln(5)
+        pdf.ln(2)
+
+    pdf.ln(3)
     
     # Section 4 - Final Result
     pdf.set_font("Arial", "B", 14)
