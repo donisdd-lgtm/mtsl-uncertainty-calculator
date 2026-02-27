@@ -121,6 +121,13 @@ with col_elec1:
         help="Select the AC system type"
     )
     
+    measurement_mode = st.selectbox(
+        "Measurement Mode",
+        options=["Active", "Reactive", "Apparent"],
+        index=0,
+        help="Select the measurement mode: Active (kW/kWh), Reactive (kVAr/kVArh), or Apparent (kVA/kVAh)"
+    )
+    
     voltage = st.number_input(
         "Voltage (V)",
         min_value=0.0,
@@ -191,39 +198,68 @@ else:  # Three-phase
 
 reactive_power_kvar = reactive_power_var / 1000.0
 
+# Calculate Apparent Power
+if ac_type == "Single-phase (1φ)":
+    apparent_power_va = voltage * current
+    apparent_formula = "S(VA) = V × I"
+else:  # Three-phase
+    apparent_power_va = math.sqrt(3) * voltage * current
+    apparent_formula = "S(VA) = √3 × V_LL × I"
+
+apparent_power_kva = apparent_power_va / 1000.0
+
 # Calculate Energy
 real_energy_kwh = real_power_kw * time_hours
 reactive_energy_kvarh = reactive_power_kvar * time_hours
+apparent_energy_kvah = apparent_power_kva * time_hours
 
 # Display Power & Energy Calculations
 st.subheader("⚡ Power & Energy Calculations")
+st.info(f"**Measurement Mode: {measurement_mode}**")
 
 col_power1, col_power2 = st.columns(2)
 
+# Determine label suffix based on selected measurement mode
+_active_marker = " ✅ (Selected)" if measurement_mode == "Active" else ""
+_reactive_marker = " ✅ (Selected)" if measurement_mode == "Reactive" else ""
+_apparent_marker = " ✅ (Selected)" if measurement_mode == "Apparent" else ""
+
 with col_power1:
     st.metric(
-        "Real Power (kW)",
+        f"Real Power (kW){_active_marker}",
         f"{real_power_kw:.3f}",
         help=f"Calculated using: {power_formula}"
     )
     
     st.metric(
-        "Reactive Power (kVAr)",
+        f"Reactive Power (kVAr){_reactive_marker}",
         f"{reactive_power_kvar:.3f}",
         help=f"Calculated using: {reactive_formula}"
+    )
+    
+    st.metric(
+        f"Apparent Power (kVA){_apparent_marker}",
+        f"{apparent_power_kva:.3f}",
+        help=f"Calculated using: {apparent_formula}"
     )
 
 with col_power2:
     st.metric(
-        "Real Energy (kWh)",
+        f"Real Energy (kWh){_active_marker}",
         f"{real_energy_kwh:.3f}",
         help=f"Energy = Power × Time = {real_power_kw:.3f} kW × {time_hours:.2f} h"
     )
     
     st.metric(
-        "Reactive Energy (kVArh)",
+        f"Reactive Energy (kVArh){_reactive_marker}",
         f"{reactive_energy_kvarh:.3f}",
         help=f"Reactive Energy = Reactive Power × Time = {reactive_power_kvar:.3f} kVAr × {time_hours:.2f} h"
+    )
+    
+    st.metric(
+        f"Apparent Energy (kVAh){_apparent_marker}",
+        f"{apparent_energy_kvah:.3f}",
+        help=f"Apparent Energy = Apparent Power × Time = {apparent_power_kva:.3f} kVA × {time_hours:.2f} h"
     )
 
 st.markdown("---")
@@ -373,14 +409,17 @@ with st.expander("View Calculation Details"):
     st.write(f"- **Age Factor:** {age_factor}%/year")
     st.write(f"- **Years in Service:** {years_in_service} years")
     st.write(f"- **AC Type:** {ac_type}")
+    st.write(f"- **Measurement Mode:** {measurement_mode}")
     st.write(f"- **Voltage:** {voltage} V")
     st.write(f"- **Current:** {current} A")
     st.write(f"- **Power Factor:** {power_factor} ({'Lagging' if pf_type == 'Lag' else ('Leading' if pf_type == 'Lead' else 'Unity')})")
     st.write(f"- **Time Duration:** {time_hours} hours")
     st.write(f"- **Real Power:** {real_power_kw:.3f} kW (calculated using {power_formula})")
     st.write(f"- **Reactive Power:** {reactive_power_kvar:.3f} kVAr (calculated using {reactive_formula})")
+    st.write(f"- **Apparent Power:** {apparent_power_kva:.3f} kVA (calculated using {apparent_formula})")
     st.write(f"- **Real Energy:** {real_energy_kwh:.3f} kWh")
     st.write(f"- **Reactive Energy:** {reactive_energy_kvarh:.3f} kVArh")
+    st.write(f"- **Apparent Energy:** {apparent_energy_kvah:.3f} kVAh")
     
     st.markdown("### Formulas Used")
     st.latex(r"U_1 = \\sigma_{readings}")
@@ -471,6 +510,10 @@ def create_excel_report():
     ws[f'B{row}'] = ac_type
     row += 1
     
+    ws[f'A{row}'] = "Measurement Mode"
+    ws[f'B{row}'] = measurement_mode
+    row += 1
+    
     ws[f'A{row}'] = "Voltage (V)"
     ws[f'B{row}'] = voltage
     row += 1
@@ -499,12 +542,20 @@ def create_excel_report():
     ws[f'B{row}'] = reactive_power_kvar
     row += 1
     
+    ws[f'A{row}'] = "Apparent Power (kVA)"
+    ws[f'B{row}'] = apparent_power_kva
+    row += 1
+    
     ws[f'A{row}'] = "Real Energy (kWh)"
     ws[f'B{row}'] = real_energy_kwh
     row += 1
     
     ws[f'A{row}'] = "Reactive Energy (kVArh)"
     ws[f'B{row}'] = reactive_energy_kvarh
+    row += 1
+    
+    ws[f'A{row}'] = "Apparent Energy (kVAh)"
+    ws[f'B{row}'] = apparent_energy_kvah
     row += 2
     
     # Error Readings Section
@@ -641,14 +692,17 @@ def create_pdf_report():
     pdf.cell(0, 6, f"Age Factor: {age_factor:.5f}%/year", ln=True)
     pdf.cell(0, 6, f"Years in Service: {years_in_service:.1f} years", ln=True)
     pdf.cell(0, 6, f"AC Type: {clean_text(ac_type)}", ln=True)
+    pdf.cell(0, 6, f"Measurement Mode: {measurement_mode}", ln=True)
     pdf.cell(0, 6, f"Voltage: {voltage:.2f} V", ln=True)
     pdf.cell(0, 6, f"Current: {current:.3f} A", ln=True)
     pdf.cell(0, 6, f"Power Factor: {power_factor:.3f} ({'Lagging' if pf_type == 'Lag' else ('Leading' if pf_type == 'Lead' else 'Unity')})", ln=True)
     pdf.cell(0, 6, f"Time Duration: {time_hours:.2f} hours", ln=True)
     pdf.cell(0, 6, f"Real Power: {real_power_kw:.3f} kW (Formula: {clean_text(power_formula)})", ln=True)
     pdf.cell(0, 6, f"Reactive Power: {reactive_power_kvar:.3f} kVAr (Formula: {clean_text(reactive_formula)})", ln=True)
+    pdf.cell(0, 6, f"Apparent Power: {apparent_power_kva:.3f} kVA (Formula: {clean_text(apparent_formula)})", ln=True)
     pdf.cell(0, 6, f"Real Energy: {real_energy_kwh:.3f} kWh", ln=True)
     pdf.cell(0, 6, f"Reactive Energy: {reactive_energy_kvarh:.3f} kVArh", ln=True)
+    pdf.cell(0, 6, f"Apparent Energy: {apparent_energy_kvah:.3f} kVAh", ln=True)
     pdf.ln(3)
     
     # Error Readings
