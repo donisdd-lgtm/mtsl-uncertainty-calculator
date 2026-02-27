@@ -138,13 +138,20 @@ with col_elec2:
         help="Enter the current in amperes (A)"
     )
     
+    pf_type = st.selectbox(
+        "Power Factor Type",
+        options=["Lag", "Lead"],
+        index=0,
+        help="Select whether the power factor is lagging or leading"
+    )
+    
     power_factor = st.number_input(
         "Power Factor",
-        min_value=-1.0,
+        min_value=0.0,
         max_value=1.0,
         value=0.85,
         format="%.3f",
-        help="Enter the power factor (-1.0 to +1.0, negative for leading)"
+        help="Enter the power factor magnitude (0.0 to 1.0)"
     )
 
 time_hours = st.number_input(
@@ -165,9 +172,11 @@ else:  # Three-phase
 
 real_power_kw = real_power_w / 1000.0
 
-# Calculate sin(φ) from power factor
-# sin(φ) is always positive, but we use the sign of PF to determine reactive power direction
-sin_phi = math.copysign(math.sqrt(1 - power_factor**2), power_factor)
+# Calculate sin(φ) from power factor magnitude
+# Leading (capacitive) load: reactive power is negative
+sin_phi = math.sqrt(max(0.0, 1 - power_factor**2))
+if pf_type == "Lead":
+    sin_phi = -sin_phi
 
 # Calculate Reactive Power
 if ac_type == "Single-phase (1φ)":
@@ -363,7 +372,7 @@ with st.expander("View Calculation Details"):
     st.write(f"- **AC Type:** {ac_type}")
     st.write(f"- **Voltage:** {voltage} V")
     st.write(f"- **Current:** {current} A")
-    st.write(f"- **Power Factor:** {power_factor}")
+    st.write(f"- **Power Factor:** {power_factor} ({'Lagging' if pf_type == 'Lag' else 'Leading'})")
     st.write(f"- **Time Duration:** {time_hours} hours")
     st.write(f"- **Real Power:** {real_power_kw:.3f} kW (calculated using {power_formula})")
     st.write(f"- **Reactive Power:** {reactive_power_kvar:.3f} kVAr (calculated using {reactive_formula})")
@@ -469,6 +478,10 @@ def create_excel_report():
     
     ws[f'A{row}'] = "Power Factor"
     ws[f'B{row}'] = power_factor
+    row += 1
+    
+    ws[f'A{row}'] = "Power Factor Type"
+    ws[f'B{row}'] = "Lagging" if pf_type == "Lag" else "Leading"
     row += 1
     
     ws[f'A{row}'] = "Time Duration (hours)"
@@ -627,7 +640,7 @@ def create_pdf_report():
     pdf.cell(0, 6, f"AC Type: {clean_text(ac_type)}", ln=True)
     pdf.cell(0, 6, f"Voltage: {voltage:.2f} V", ln=True)
     pdf.cell(0, 6, f"Current: {current:.3f} A", ln=True)
-    pdf.cell(0, 6, f"Power Factor: {power_factor:.3f}", ln=True)
+    pdf.cell(0, 6, f"Power Factor: {power_factor:.3f} ({'Lagging' if pf_type == 'Lag' else 'Leading'})", ln=True)
     pdf.cell(0, 6, f"Time Duration: {time_hours:.2f} hours", ln=True)
     pdf.cell(0, 6, f"Real Power: {real_power_kw:.3f} kW (Formula: {clean_text(power_formula)})", ln=True)
     pdf.cell(0, 6, f"Reactive Power: {reactive_power_kvar:.3f} kVAr (Formula: {clean_text(reactive_formula)})", ln=True)
