@@ -21,6 +21,103 @@ st.markdown("---")
 
 # Sidebar for Reference/Certificate Settings
 st.sidebar.header("📋 Configuration Parameters")
+
+st.sidebar.markdown("### Calibration Details")
+
+calibration_date = st.sidebar.date_input(
+    "Date of Calibration",
+    value=None,
+    help="Enter the date of calibration"
+)
+
+temp_cal_certificate = st.sidebar.number_input(
+    "Temperature as per Calibration Certificate of Reference Standard (°C)",
+    value=25.0,
+    format="%.2f",
+    help="Temperature recorded in the calibration certificate of the reference standard"
+)
+
+room_temp_calibration = st.sidebar.number_input(
+    "Room Temperature During Calibration (°C)",
+    value=25.0,
+    format="%.2f",
+    help="Actual room temperature during the calibration process"
+)
+
+st.sidebar.markdown("### Reference Standard Details")
+
+ref_make = st.sidebar.text_input(
+    "Make",
+    value="",
+    key="ref_make",
+    help="Manufacturer/make of the reference standard"
+)
+
+ref_model = st.sidebar.text_input(
+    "Model",
+    value="",
+    key="ref_model",
+    help="Model of the reference standard"
+)
+
+ref_sl_no = st.sidebar.text_input(
+    "Sl No.",
+    value="",
+    key="ref_sl_no",
+    help="Serial number of the reference standard"
+)
+
+ref_accuracy_class = st.sidebar.text_input(
+    "Accuracy Class",
+    value="",
+    key="ref_accuracy_class",
+    help="Accuracy class of the reference standard"
+)
+
+ref_due_date = st.sidebar.date_input(
+    "Date of Due Calibration",
+    value=None,
+    key="ref_due_date",
+    help="Due date of calibration for the reference standard"
+)
+
+st.sidebar.markdown("### Device Under Calibration Details")
+
+duc_make = st.sidebar.text_input(
+    "Make",
+    value="",
+    key="duc_make",
+    help="Manufacturer/make of the device under calibration"
+)
+
+duc_model = st.sidebar.text_input(
+    "Model",
+    value="",
+    key="duc_model",
+    help="Model of the device under calibration"
+)
+
+duc_sl_no = st.sidebar.text_input(
+    "Sl No.",
+    value="",
+    key="duc_sl_no",
+    help="Serial number of the device under calibration"
+)
+
+duc_accuracy_class = st.sidebar.text_input(
+    "Accuracy Class",
+    value="",
+    key="duc_accuracy_class",
+    help="Accuracy class of the device under calibration"
+)
+
+duc_due_date = st.sidebar.date_input(
+    "Date of Due Calibration",
+    value=None,
+    key="duc_due_date",
+    help="Due date of calibration for the device under calibration"
+)
+
 st.sidebar.markdown("### Reference & Certificate")
 
 ref_standard_accuracy = st.sidebar.number_input(
@@ -481,7 +578,59 @@ def create_excel_report():
     ws[f'A{row}'] = "INPUT PARAMETERS"
     ws[f'A{row}'].font = bold_font
     row += 1
-    
+
+    ws[f'A{row}'] = "Date of Calibration"
+    ws[f'B{row}'] = calibration_date.strftime('%Y-%m-%d') if calibration_date is not None else ""
+    row += 1
+
+    ws[f'A{row}'] = "Temperature as per Calibration Certificate of Reference Standard (°C)"
+    ws[f'B{row}'] = temp_cal_certificate
+    row += 1
+
+    ws[f'A{row}'] = "Room Temperature During Calibration (°C)"
+    ws[f'B{row}'] = room_temp_calibration
+    row += 1
+
+    ws[f'A{row}'] = "Reference Standard - Make"
+    ws[f'B{row}'] = ref_make
+    row += 1
+
+    ws[f'A{row}'] = "Reference Standard - Model"
+    ws[f'B{row}'] = ref_model
+    row += 1
+
+    ws[f'A{row}'] = "Reference Standard - Sl No."
+    ws[f'B{row}'] = ref_sl_no
+    row += 1
+
+    ws[f'A{row}'] = "Reference Standard - Accuracy Class"
+    ws[f'B{row}'] = ref_accuracy_class
+    row += 1
+
+    ws[f'A{row}'] = "Reference Standard - Date of Due Calibration"
+    ws[f'B{row}'] = ref_due_date.strftime('%Y-%m-%d') if ref_due_date is not None else ""
+    row += 1
+
+    ws[f'A{row}'] = "DUC - Make"
+    ws[f'B{row}'] = duc_make
+    row += 1
+
+    ws[f'A{row}'] = "DUC - Model"
+    ws[f'B{row}'] = duc_model
+    row += 1
+
+    ws[f'A{row}'] = "DUC - Sl No."
+    ws[f'B{row}'] = duc_sl_no
+    row += 1
+
+    ws[f'A{row}'] = "DUC - Accuracy Class"
+    ws[f'B{row}'] = duc_accuracy_class
+    row += 1
+
+    ws[f'A{row}'] = "DUC - Date of Due Calibration"
+    ws[f'B{row}'] = duc_due_date.strftime('%Y-%m-%d') if duc_due_date is not None else ""
+    row += 1
+
     ws[f'A{row}'] = "Reference Standard Accuracy (%)"
     ws[f'B{row}'] = ref_standard_accuracy
     row += 1
@@ -684,7 +833,33 @@ def create_pdf_report():
     pdf.set_font("Arial", "B", 12)
     pdf.cell(0, 8, "INPUT PARAMETERS", ln=True)
     pdf.set_font("Arial", "", 10)
-    
+
+    pdf.cell(0, 6, f"Date of Calibration: {calibration_date.strftime('%Y-%m-%d') if calibration_date is not None else 'N/A'}", ln=True)
+    pdf.cell(0, 6, f"Temperature as per Calibration Certificate of Reference Standard: {temp_cal_certificate:.2f} deg C", ln=True)
+    pdf.cell(0, 6, f"Room Temperature During Calibration: {room_temp_calibration:.2f} deg C", ln=True)
+    pdf.ln(2)
+
+    pdf.set_font("Arial", "B", 11)
+    pdf.cell(0, 6, "Reference Standard Details:", ln=True)
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 6, f"  Make: {ref_make if ref_make else 'N/A'}", ln=True)
+    pdf.cell(0, 6, f"  Model: {ref_model if ref_model else 'N/A'}", ln=True)
+    pdf.cell(0, 6, f"  Sl No.: {ref_sl_no if ref_sl_no else 'N/A'}", ln=True)
+    pdf.cell(0, 6, f"  Accuracy Class: {ref_accuracy_class if ref_accuracy_class else 'N/A'}", ln=True)
+    pdf.cell(0, 6, f"  Date of Due Calibration: {ref_due_date.strftime('%Y-%m-%d') if ref_due_date is not None else 'N/A'}", ln=True)
+    pdf.ln(2)
+
+    pdf.set_font("Arial", "B", 11)
+    pdf.cell(0, 6, "Device Under Calibration Details:", ln=True)
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 6, f"  Make: {duc_make if duc_make else 'N/A'}", ln=True)
+    pdf.cell(0, 6, f"  Model: {duc_model if duc_model else 'N/A'}", ln=True)
+    pdf.cell(0, 6, f"  Sl No.: {duc_sl_no if duc_sl_no else 'N/A'}", ln=True)
+    pdf.cell(0, 6, f"  Accuracy Class: {duc_accuracy_class if duc_accuracy_class else 'N/A'}", ln=True)
+    pdf.cell(0, 6, f"  Date of Due Calibration: {duc_due_date.strftime('%Y-%m-%d') if duc_due_date is not None else 'N/A'}", ln=True)
+    pdf.ln(2)
+
+    pdf.set_font("Arial", "", 10)
     pdf.cell(0, 6, f"Reference Standard Accuracy: {ref_standard_accuracy:.4f}%", ln=True)
     pdf.cell(0, 6, f"Certificate Uncertainty: {certificate_uncertainty:.4f}%", ln=True)
     pdf.cell(0, 6, f"DUC Resolution: {duc_resolution:.4f}", ln=True)
