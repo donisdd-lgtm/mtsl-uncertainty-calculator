@@ -143,11 +143,11 @@ duc_resolution = st.sidebar.number_input(
 
 st.sidebar.markdown("### Environmental & Drift Parameters")
 
-temp_difference = st.sidebar.number_input(
+temp_difference = round(temp_cal_certificate - room_temp_calibration, 2)
+st.sidebar.metric(
     "Temperature Difference (°C)",
-    value=0.0,
-    format="%.2f",
-    help="Enter the temperature difference in degrees Celsius"
+    f"{temp_difference:.2f}",
+    help="Automatically calculated as: Temperature as per Calibration Certificate of Reference Standard − Room Temperature During Calibration"
 )
 
 age_factor = st.sidebar.number_input(
