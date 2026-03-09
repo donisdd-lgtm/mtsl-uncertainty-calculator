@@ -13,6 +13,23 @@ TEMPERATURE_COEFFICIENT = 0.000025
 COVERAGE_FACTOR = 2
 BMC_FLOOR = 0.083  # Best Measurement Capability floor
 
+
+def calculate_v_eff(U_c, U1, V1):
+    """Calculate Effective Degrees of Freedom using the Welch-Satterthwaite equation.
+
+    The general formula is:
+        V_eff = U_c^4 / sum(U_i^4 / V_i)
+
+    Because V2 through V6 are infinite, each corresponding term (U_i^4 / V_i)
+    mathematically evaluates to zero and contributes nothing to the denominator.
+    The sum therefore reduces to just the U1 term, giving:
+        V_eff = U_c^4 / (U1^4 / V1)
+    """
+    denominator = (U1**4) / V1
+    if denominator == 0:
+        return math.inf
+    return (U_c**4) / denominator
+
 st.set_page_config(page_title="MTSL Uncertainty Calc", layout="wide")
 
 st.title("⚡ Uncertainty Calculation Worksheet - MTSL Palakkad")
@@ -386,11 +403,26 @@ U5 = (TEMPERATURE_COEFFICIENT * temp_difference) / math.sqrt(3)
 total_drift = age_factor * years_in_service
 U6 = total_drift / math.sqrt(3)
 
+# Degrees of Freedom for each uncertainty component
+# V1: Type A repeatability based on 10 readings → n-1 = 9
+V1 = 9
+# V2–V6: Type B components modelled by well-known distributions →
+# infinite degrees of freedom by convention
+V2 = math.inf
+V3 = math.inf
+V4 = math.inf
+V5 = math.inf
+V6 = math.inf
+
+
 # Average Error
 average_error = np.mean(error_array)
 
 # Combined Uncertainty (uc)
 uc = math.sqrt(U1**2 + U2**2 + U3**2 + U4**2 + U5**2 + U6**2)
+
+# Effective Degrees of Freedom (Welch-Satterthwaite)
+V_eff = calculate_v_eff(uc, U1, V1)
 
 # Expanded Uncertainty (U)
 expanded_uncertainty = uc * COVERAGE_FACTOR
