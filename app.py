@@ -469,7 +469,8 @@ uncertainty_budget = pd.DataFrame({
         total_drift
     ],
     "Divisor": ["1", "√3", "2", "2√3", "√3", "√3"],
-    "Standard Uncertainty (ui)": [U1, U2, U3, U4, U5, U6]
+    "Standard Uncertainty (ui)": [U1, U2, U3, U4, U5, U6],
+    "Degrees of Freedom (ν)": [str(V1), "∞", "∞", "∞", "∞", "∞"]
 })
 
 st.dataframe(
@@ -483,7 +484,8 @@ st.dataframe(
         "Distribution": st.column_config.TextColumn("Distribution", width="medium"),
         "Value": st.column_config.NumberColumn("Value", format="%.6f", width="medium"),
         "Divisor": st.column_config.TextColumn("Divisor", width="small"),
-        "Standard Uncertainty (ui)": st.column_config.NumberColumn("Standard Uncertainty (ui)", format="%.6f", width="medium")
+        "Standard Uncertainty (ui)": st.column_config.NumberColumn("Standard Uncertainty (ui)", format="%.6f", width="medium"),
+        "Degrees of Freedom (ν)": st.column_config.TextColumn("Degrees of Freedom (ν)", width="medium")
     }
 )
 
@@ -515,6 +517,13 @@ with col_results2:
         "Combined Uncertainty (uc)", 
         f"{uc:.6f}",
         help="Root sum of squares of all uncertainty components"
+    )
+    
+    v_eff_display = "∞" if math.isinf(V_eff) else f"{V_eff:.2f}"
+    st.metric(
+        "Effective Degrees of Freedom (ν_eff)",
+        v_eff_display,
+        help="Welch-Satterthwaite effective degrees of freedom. Since V2–V6 are infinite, ν_eff = uc⁴ / (U1⁴ / V1)"
     )
     
     st.metric(
@@ -558,6 +567,7 @@ with st.expander("View Calculation Details"):
     st.latex(r"U_5 = \\frac{0.000025 \times Temp\;Difference}{\\sqrt{3}}")
     st.latex(r"U_6 = \\frac{Energy\;Drift}{\\sqrt{3}}")
     st.latex(r"u_c = \\sqrt{U_1^2 + U_2^2 + U_3^2 + U_4^2 + U_5^2 + U_6^2}")
+    st.latex(r"\nu_{eff} = \frac{u_c^4}{\sum_i \frac{U_i^4}{\nu_i}} = \frac{u_c^4}{\frac{U_1^4}{\nu_1}} \quad (\nu_2\text{–}\nu_6 = \infty)")
     st.latex(r"U = u_c \times k \quad (k=2)")
     
     st.markdown("### Component Contributions")
@@ -763,7 +773,7 @@ def create_excel_report():
     row += 1
     
     # Headers
-    headers = ["Component", "Description", "Type", "Distribution", "Value", "Divisor", "Standard Uncertainty (ui)"]
+    headers = ["Component", "Description", "Type", "Distribution", "Value", "Divisor", "Standard Uncertainty (ui)", "Degrees of Freedom (ν)"]
     for col_idx, header in enumerate(headers, 1):
         cell = ws.cell(row=row, column=col_idx)
         cell.value = header
@@ -781,6 +791,7 @@ def create_excel_report():
         ws[f'E{row}'] = budget_row['Value']
         ws[f'F{row}'] = budget_row['Divisor']
         ws[f'G{row}'] = budget_row['Standard Uncertainty (ui)']
+        ws[f'H{row}'] = budget_row['Degrees of Freedom (ν)']
         row += 1
     
     row += 1
@@ -796,6 +807,10 @@ def create_excel_report():
     
     ws[f'A{row}'] = "Combined Uncertainty - uc (%)"
     ws[f'B{row}'] = uc
+    row += 1
+    
+    ws[f'A{row}'] = "Effective Degrees of Freedom (ν_eff)"
+    ws[f'B{row}'] = "Infinity" if math.isinf(V_eff) else round(V_eff, 4)
     row += 1
     
     ws[f'A{row}'] = "Expanded Uncertainty - U (k={COVERAGE_FACTOR}) (%)"
@@ -1086,6 +1101,20 @@ def create_pdf_report():
     pdf.cell(0, 5, f"  Result       : U = {expanded_uncertainty:.6f} %", ln=True)
     pdf.ln(2)
 
+    # --- Effective Degrees of Freedom (Welch-Satterthwaite) ---
+    v_eff_str = "Infinity" if math.isinf(V_eff) else f"{V_eff:.4f}"
+    pdf.set_font("Arial", "B", 10)
+    pdf.cell(0, 6, "Effective Degrees of Freedom (nu_eff)  [Welch-Satterthwaite equation]", ln=True)
+    pdf.set_font("Arial", "", 9)
+    pdf.cell(0, 5, "  Formula     : V_eff = uc^4 / sum(Ui^4 / Vi)", ln=True)
+    pdf.cell(0, 5, "  Note        : V2-V6 are infinite (Type B, known distributions), so their terms = 0", ln=True)
+    pdf.cell(0, 5, "  Simplified  : V_eff = uc^4 / (U1^4 / V1)", ln=True)
+    pdf.cell(0, 5, f"  V1 = {V1}  (n-1 = 10-1 = 9, from 10 repeatability readings)", ln=True)
+    pdf.cell(0, 5, f"  Substitution: V_eff = {uc:.6f}^4 / ({U1:.6f}^4 / {V1})", ln=True)
+    pdf.cell(0, 5, f"               = {uc**4:.10f} / {(U1**4)/V1:.10f}", ln=True)
+    pdf.cell(0, 5, f"  Result       : V_eff = {v_eff_str}", ln=True)
+    pdf.ln(2)
+
     if bmc_applied:
         pdf.set_font("Arial", "B", 9)
         pdf.set_text_color(255, 102, 0)
@@ -1212,6 +1241,21 @@ with st.expander("🔍 Show Detailed Step-by-Step Calculation"):
     st.latex(f"= \\sqrt{{{U1:.6f}^2 + {U2:.6f}^2 + {U3:.6f}^2 + {U4:.6f}^2 + {U5:.8f}^2 + {U6:.8f}^2}}")
     sum_of_squares = U1**2 + U2**2 + U3**2 + U4**2 + U5**2 + U6**2
     st.latex(f"= \\sqrt{{{sum_of_squares:.12f}}} = {uc:.6f} \%")
+    st.markdown("")
+    
+    # Effective Degrees of Freedom (Welch-Satterthwaite)
+    st.markdown("#### **Effective Degrees of Freedom (ν_eff) – Welch-Satterthwaite Equation**")
+    st.latex(r"\nu_{eff} = \frac{u_c^4}{\displaystyle\sum_{i=1}^{6} \frac{U_i^4}{\nu_i}}")
+    st.markdown(
+        "Since ν₂ through ν₆ are infinite (Type B components from known distributions), "
+        "their terms evaluate to zero. The formula reduces to:"
+    )
+    st.latex(r"\nu_{eff} = \frac{u_c^4}{\dfrac{U_1^4}{\nu_1}}")
+    st.latex(
+        f"= \\frac{{{uc:.6f}^4}}{{\\dfrac{{{U1:.6f}^4}}{{{V1}}}}}"
+        f" = \\frac{{{uc**4:.10f}}}{{{(U1**4)/V1:.10f}}}"
+        f" = {v_eff_display}"
+    )
     st.markdown("")
     
     # Expanded Uncertainty
