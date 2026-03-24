@@ -468,7 +468,7 @@ uncertainty_budget = pd.DataFrame({
         TEMPERATURE_COEFFICIENT * temp_difference,
         total_drift
     ],
-    "Divisor": ["1", "√3", "2", "2√3", "√3", "√3"],
+    "Divisor": ["√10", "√3", "2", "2√3", "√3", "√3"],
     "Standard Uncertainty (ui)": [U1, U2, U3, U4, U5, U6],
     "Degrees of Freedom (ν)": [str(V1), "∞", "∞", "∞", "∞", "∞"]
 })
